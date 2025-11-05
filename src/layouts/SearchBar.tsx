@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Label } from '@/components/ui/label'
 import ReactDOM from 'react-dom'
 import { LocalData } from '@/utils/LocalData'
-import mockFavicon from '@/assets/mock-favicon.png' // ícone padrão (adicione na pasta /assets)
+import mockFavicon from '@/assets/favicons/mock-favicon.svg' // ícone padrão (adicione na pasta /assets)
 import type { FaviconItem } from '@/layouts/Favicon'
 
 interface SearchBarProps {
@@ -16,37 +16,54 @@ export default function SearchBar({ onSearch }: SearchBarProps) {
   const [selectedCollections, setSelectedCollections] = useState<string[]>([])
   const [isSelectOpen, setIsSelectOpen] = useState(false)
   const [collections, setCollections] = useState(LocalData.getAll())
+  const [url, setUrl] = useState('')
+
+  // const onSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  //   e.preventDefault()
+  //   if (!query.trim()) return
+
+  //   try {
+  //     onSearch(query)
+  //   } catch {
+  //     console.warn('⚠ onSearch not implemented in parent yet.')
+  //   }
+
+  //   setTitle(query)
+  //   setIsModalOpen(true)
+  // }
 
   const onSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
-    if (!query.trim()) return
-
-    try {
-      onSearch(query)
-    } catch {
-      console.warn('⚠ onSearch not implemented in parent yet.')
-    }
-
-    setTitle(query)
-    setIsModalOpen(true)
+    handleSearch(query)
   }
 
-  const handleInsert = () => {
-    if (!selectedCollections.length) return
+  const handleInsert = async () => {
+    if (!selectedCollections.length || !url.trim()) return
+
+    // 🔹 Busca descrição simulada (ou real no futuro)
+    const description = 'Site description'
 
     const newFavicon: FaviconItem = {
       key: crypto.randomUUID(),
-      name: title || 'New Favorite',
-      src: 'https://cdn.simpleicons.org/appstore/007AFF', // Ícone padrão mockado
-      bgClass: 'bg-white', // Mantém o fundo consistente
-      imgClass: 'object-contain', // Garante proporção correta
+      name: title?.trim() || 'New Favorite',
+      src: 'https://cdn.simpleicons.org/appstore/007AFF', // Ícone mock padrão
+      bgClass: 'bg-white', // Fundo consistente
+      imgClass: 'object-contain', // Mantém proporção
+      url: url.trim(), // 🌐 salva a URL do site
+      description, // 🧠 salva a descrição do site
     }
 
+    // 💾 Adiciona o favicon nas coleções selecionadas
     LocalData.addFaviconToCollections(newFavicon, selectedCollections)
 
+    // 🔁 Atualiza a tela
     window.dispatchEvent(new Event('collectionsUpdated'))
+
+    // ♻️ Reseta modal e campos
     setIsModalOpen(false)
     setQuery('')
+    setTitle('')
+    setUrl('')
   }
 
   const toggleCollection = (id: string) => {
@@ -64,37 +81,86 @@ export default function SearchBar({ onSearch }: SearchBarProps) {
     setIsSelectOpen(true)
   }
 
+  // 🔍 Ícone de busca estilo favicon
+  const IconFaviconSearch = (props: React.SVGProps<SVGSVGElement>) => (
+    <svg
+      viewBox='0 0 24 24'
+      fill='none'
+      stroke='currentColor'
+      strokeWidth='2'
+      strokeLinecap='round'
+      strokeLinejoin='round'
+      {...props}
+    >
+      <circle cx='11' cy='11' r='8' />
+      <path d='M21 21l-4.3-4.3' />
+      <path d='M11 7v4l3 3' />
+    </svg>
+  )
+
+  const handleSearch = (input: string) => {
+    if (!input.trim()) return
+
+    try {
+      onSearch(input)
+    } catch {
+      console.warn('⚠ onSearch not implemented in parent yet.')
+    }
+
+    setTitle(input)
+    setIsModalOpen(true)
+  }
+
   return (
     <>
       {/* 🔍 Search Bar */}
       <div className='mx-auto w-full max-w-2xl pt-6'>
-        <form onSubmit={onSubmit} className='relative'>
+        <form onSubmit={onSubmit} className='relative flex items-center gap-2'>
           <Label htmlFor='search' className='sr-only'>
             Add new favorite
           </Label>
 
-          <svg
-            viewBox='0 0 24 24'
-            fill='none'
-            stroke='currentColor'
-            strokeWidth='2'
-            strokeLinecap='round'
-            strokeLinejoin='round'
-            aria-hidden='true'
-            className='absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground pointer-events-none'
-          >
-            <circle cx='11' cy='11' r='8' />
-            <path d='m21 21-3.6-3.6' />
-          </svg>
+          {/* Campo de busca */}
+          <div className='relative flex-1'>
+            <svg
+              viewBox='0 0 24 24'
+              fill='none'
+              stroke='currentColor'
+              strokeWidth='2'
+              strokeLinecap='round'
+              strokeLinejoin='round'
+              aria-hidden='true'
+              className='absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground pointer-events-none'
+            >
+              <circle cx='11' cy='11' r='8' />
+              <path d='m21 21-3.6-3.6' />
+            </svg>
 
-          <input
-            id='search'
-            type='text'
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder='Enter a URL or company name...'
-            className='w-full rounded-full border border-input bg-background pl-10 pr-4 h-12 text-sm shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-ring caret-current dark:caret-white'
-          />
+            <input
+              id='search'
+              type='text'
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder='Enter a URL or company name...'
+              className='w-full rounded-full border border-input bg-background 
+                         pl-10 pr-4 h-12 text-sm shadow-sm outline-none 
+                         focus-visible:ring-2 focus-visible:ring-blue-500 
+                         caret-current dark:caret-white'
+            />
+          </div>
+
+          {/* 🧭 Botão de busca (abre modal também) */}
+          <button
+            type='button'
+            onClick={() => handleSearch(query)}
+            className='w-12 h-12 rounded-full bg-white dark:bg-zinc-800 
+                       shadow-md flex items-center justify-center 
+                       hover:shadow-lg hover:scale-105 transition-all duration-200 ease-out 
+                       border border-gray-200 dark:border-zinc-700'
+            aria-label='Add new favorite'
+          >
+            <IconFaviconSearch className='w-5 h-5 text-blue-500 dark:text-blue-400' />
+          </button>
         </form>
       </div>
 
@@ -145,6 +211,17 @@ export default function SearchBar({ onSearch }: SearchBarProps) {
                            px-4 py-2 text-sm shadow-sm outline-none mb-3
                            focus-visible:ring-2 focus-visible:ring-blue-500 
                            dark:bg-zinc-800'
+              />
+              {/* Editable Url */}
+              <input
+                type='text'
+                placeholder='URL do site'
+                value={url}
+                onChange={(e) => setUrl(e.target.value)}
+                className='w-full rounded-full border border-input bg-background 
+             px-4 py-2 text-sm shadow-sm outline-none mb-3
+             focus-visible:ring-2 focus-visible:ring-blue-500 
+             dark:bg-zinc-800'
               />
 
               {/* Collection Selector */}

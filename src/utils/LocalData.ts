@@ -1,5 +1,6 @@
 import type { FaviconItem } from '@/layouts/Favicon'
 
+
 export interface CollectionData {
   id: string
   title: string

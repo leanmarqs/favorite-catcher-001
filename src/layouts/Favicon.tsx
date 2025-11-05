@@ -5,13 +5,17 @@ import { useRef, useState } from 'react'
 import { Trash2 } from 'lucide-react'
 import { LocalData } from '@/utils/LocalData'
 
+// Favicon.tsx (ou no arquivo de tipos globais)
 export type FaviconItem = {
   key: string
   name: string
   src: string
   bgClass: string
   imgClass?: string
+  url: string // 🌐 nova propriedade
+  description?: string // 🧠 será preenchida pela função que extrai meta description
 }
+
 
 interface FaviconProps {
   item: FaviconItem
