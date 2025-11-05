@@ -1,0 +1,293 @@
+import { useState } from 'react'
+import { Label } from '@/components/ui/label'
+import ReactDOM from 'react-dom'
+import { LocalData } from '@/utils/LocalData'
+import mockFavicon from '@/assets/mock-favicon.png' // ícone padrão (adicione na pasta /assets)
+import type { FaviconItem } from '@/layouts/Favicon'
+
+interface SearchBarProps {
+  onSearch: (query: string) => void
+}
+
+export default function SearchBar({ onSearch }: SearchBarProps) {
+  const [query, setQuery] = useState('')
+  const [isModalOpen, setIsModalOpen] = useState(false)
+  const [title, setTitle] = useState('')
+  const [selectedCollections, setSelectedCollections] = useState<string[]>([])
+  const [isSelectOpen, setIsSelectOpen] = useState(false)
+  const [collections, setCollections] = useState(LocalData.getAll())
+
+  const onSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    if (!query.trim()) return
+
+    try {
+      onSearch(query)
+    } catch {
+      console.warn('⚠ onSearch not implemented in parent yet.')
+    }
+
+    setTitle(query)
+    setIsModalOpen(true)
+  }
+
+  const handleInsert = () => {
+    if (!selectedCollections.length) return
+
+    const newFavicon: FaviconItem = {
+      key: crypto.randomUUID(),
+      name: title || 'New Favorite',
+      src: 'https://cdn.simpleicons.org/appstore/007AFF', // Ícone padrão mockado
+      bgClass: 'bg-white', // Mantém o fundo consistente
+      imgClass: 'object-contain', // Garante proporção correta
+    }
+
+    LocalData.addFaviconToCollections(newFavicon, selectedCollections)
+
+    window.dispatchEvent(new Event('collectionsUpdated'))
+    setIsModalOpen(false)
+    setQuery('')
+  }
+
+  const toggleCollection = (id: string) => {
+    setSelectedCollections((prev) =>
+      prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
+    )
+  }
+
+  const handleOpenSelect = () => {
+    setCollections(LocalData.getAll())
+    if (!selectedCollections.length && collections.length > 0) {
+      const last = [...collections].sort((a, b) => b.createdAt - a.createdAt)[0]
+      setSelectedCollections([last.id])
+    }
+    setIsSelectOpen(true)
+  }
+
+  return (
+    <>
+      {/* 🔍 Search Bar */}
+      <div className='mx-auto w-full max-w-2xl pt-6'>
+        <form onSubmit={onSubmit} className='relative'>
+          <Label htmlFor='search' className='sr-only'>
+            Add new favorite
+          </Label>
+
+          <svg
+            viewBox='0 0 24 24'
+            fill='none'
+            stroke='currentColor'
+            strokeWidth='2'
+            strokeLinecap='round'
+            strokeLinejoin='round'
+            aria-hidden='true'
+            className='absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground pointer-events-none'
+          >
+            <circle cx='11' cy='11' r='8' />
+            <path d='m21 21-3.6-3.6' />
+          </svg>
+
+          <input
+            id='search'
+            type='text'
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder='Enter a URL or company name...'
+            className='w-full rounded-full border border-input bg-background pl-10 pr-4 h-12 text-sm shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-ring caret-current dark:caret-white'
+          />
+        </form>
+      </div>
+
+      {/* 🪄 Modal: Add New Favorite */}
+      {isModalOpen &&
+        ReactDOM.createPortal(
+          <div
+            className='fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[9999]'
+            onClick={() => setIsModalOpen(false)}
+          >
+            <div
+              className='bg-white dark:bg-zinc-900 text-black dark:text-zinc-100 rounded-3xl p-6 w-96 shadow-2xl relative'
+              onClick={(e) => e.stopPropagation()}
+            >
+              <h2 className='text-lg font-semibold mb-4 text-center'>
+                Add New Favorite
+              </h2>
+
+              {/* Favicon Preview */}
+              <div className='flex justify-center mb-4'>
+                <div
+                  className='cursor-pointer grid place-items-center w-full aspect-square max-w-16 rounded-2xl shadow-md bg-white'
+                  onClick={() => {
+                    const newUrl = prompt('Enter new favicon image URL:')
+                    if (newUrl) {
+                      const img = new Image()
+                      img.src = newUrl
+                      img.onload = () => {
+                        setQuery((prev) => prev)
+                      }
+                    }
+                  }}
+                >
+                  <img
+                    src={mockFavicon}
+                    alt='favicon'
+                    className='w-1/2 h-1/2 transition-transform duration-200 ease-out object-contain'
+                  />
+                </div>
+              </div>
+
+              {/* Editable Title */}
+              <input
+                type='text'
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                className='w-full rounded-full border border-input bg-background 
+                           px-4 py-2 text-sm shadow-sm outline-none mb-3
+                           focus-visible:ring-2 focus-visible:ring-blue-500 
+                           dark:bg-zinc-800'
+              />
+
+              {/* Collection Selector */}
+              <div
+                onClick={handleOpenSelect}
+                className='w-full rounded-full border border-gray-300 
+             px-4 py-2 text-sm cursor-pointer bg-gray-50 dark:bg-zinc-800
+             hover:bg-gray-100 dark:hover:bg-zinc-700 transition
+             whitespace-nowrap overflow-hidden text-ellipsis'
+              >
+                {selectedCollections.length
+                  ? collections
+                      .filter((col) => selectedCollections.includes(col.id))
+                      .map((col) => col.title)
+                      .join(', ')
+                  : 'Select collections'}
+              </div>
+
+              <div className='flex justify-end mt-5 gap-2'>
+                <button
+                  onClick={() => setIsModalOpen(false)}
+                  className='px-4 py-2 rounded-full text-sm bg-gray-200 
+                             dark:bg-zinc-700 hover:opacity-80'
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleInsert}
+                  className='px-4 py-2 rounded-full text-sm bg-blue-600 
+                             text-white hover:opacity-90'
+                >
+                  Insert
+                </button>
+              </div>
+            </div>
+          </div>,
+          document.body
+        )}
+
+      {/* 📚 Modal: Select Collections */}
+      {isSelectOpen &&
+        ReactDOM.createPortal(
+          <div
+            className='fixed inset-0 bg-black/50 backdrop-blur-sm 
+                       flex items-center justify-center z-[9999]'
+            onClick={() => setIsSelectOpen(false)}
+          >
+            <div
+              className='bg-white dark:bg-zinc-900 text-black dark:text-zinc-100 
+                         rounded-3xl p-6 w-80 shadow-2xl relative'
+              onClick={(e) => e.stopPropagation()}
+            >
+              <h2 className='text-lg font-semibold mb-4 text-center'>
+                Select Collections
+              </h2>
+
+              <ul className='space-y-2 max-h-64 overflow-y-auto'>
+                {collections.map((col) => (
+                  <li
+                    key={col.id}
+                    className='flex items-center gap-2 px-2 py-1 rounded-md hover:bg-gray-100 dark:hover:bg-zinc-800'
+                  >
+                    <input
+                      type='checkbox'
+                      checked={selectedCollections.includes(col.id)}
+                      onChange={() => toggleCollection(col.id)}
+                      className='accent-blue-600 w-4 h-4'
+                    />
+                    <span>{col.title}</span>
+                  </li>
+                ))}
+              </ul>
+
+              <div className='flex justify-end mt-5 gap-2'>
+                <button
+                  onClick={() => setIsSelectOpen(false)}
+                  className='px-4 py-2 rounded-full text-sm bg-gray-200 
+                             dark:bg-zinc-700 hover:opacity-80'
+                >
+                  Done
+                </button>
+              </div>
+            </div>
+          </div>,
+          document.body
+        )}
+    </>
+  )
+}
+
+// import { useState } from 'react'
+// import { Label } from '@/components/ui/label'
+
+// function IconSearch(props: React.SVGProps<SVGSVGElement>) {
+//   return (
+//     <svg
+//       viewBox='0 0 24 24'
+//       fill='none'
+//       stroke='currentColor'
+//       strokeWidth='2'
+//       strokeLinecap='round'
+//       strokeLinejoin='round'
+//       aria-hidden='true'
+//       {...props}
+//     >
+//       <circle cx='11' cy='11' r='8' />
+//       <path d='m21 21-3.6-3.6' />
+//     </svg>
+//   )
+// }
+
+// interface SearchBarProps {
+//   onSearch: (query: string) => void
+// }
+
+// export default function SearchBar({ onSearch }: SearchBarProps) {
+//   const [query, setQuery] = useState('')
+
+//   const onSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+//     e.preventDefault()
+//     onSearch(query)
+//   }
+
+//   return (
+//     <div className='mx-auto w-full max-w-2xl pt-6 caret-transparent'>
+//       <form onSubmit={onSubmit} className='relative caret-transparent'>
+//         {/* ↑ faz com que o caret seja invisível em toda a área do form */}
+
+//         <Label htmlFor='search' className='sr-only'>
+//           Buscar favoritos
+//         </Label>
+
+//         <IconSearch className='absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground pointer-events-none' />
+
+//         <input
+//           id='search'
+//           type='text'
+//           value={query}
+//           onChange={(e) => setQuery(e.target.value)}
+//           placeholder='Buscar favoritos'
+//           className='w-full rounded-full border border-input bg-background pl-10 pr-4 h-12 text-sm shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-ring caret-current dark:caret-white'
+//         />
+//       </form>
+//     </div>
+//   )
+// }
