@@ -57,11 +57,12 @@ function sortCollections(
 /** 🧱 CRUD + Ordenação */
 export const LocalDataCollection = {
   /** ➕ Cria uma nova coleção */
-  create(title: string): Collection {
+  create(title: string, isPublic: boolean): Collection {
     const collections = load()
     const newCollection: Collection = {
       id: crypto.randomUUID(),
       title,
+      isPublic,
       createdAt: Date.now(),
       amount: 0,
       relevance: 1,

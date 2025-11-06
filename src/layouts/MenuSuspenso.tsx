@@ -132,21 +132,13 @@ export default function MenuSuspenso({
   const [isFilterOpen, setIsFilterOpen] = useState(false)
   const [isCreating, setIsCreating] = useState(false)
   const [collectionName, setCollectionName] = useState('')
+  const [isPublic, setIsPublic] = useState(true)
   const menuRef = useRef<HTMLDivElement>(null)
 
   const sortOption = controlledOption ?? internalOption
   const sortDirection = controlledDirection ?? internalDir
 
   const toggleFilter = () => setIsFilterOpen((v) => !v)
-
-  // mantém essa função no componente:
-  const handleCreateCollection = () => {
-    if (!collectionName.trim()) return
-    LocalDataCollection.create(collectionName.trim()) // 👈 cria de verdade
-    setIsCreating(false)
-    setCollectionName('')
-    window.dispatchEvent(new Event('collectionsUpdated')) // 👈 atualiza a Home
-  }
 
   // alterna somente direção (↑/↓)
   const toggleDirection = () => {
@@ -307,6 +299,19 @@ export default function MenuSuspenso({
                            focus-visible:ring-2 focus-visible:ring-blue-500 
                            dark:bg-zinc-800'
               />
+
+              <div className='flex items-center px-4 mt-4'>
+                <input
+                  type='checkbox'
+                  checked={isPublic}
+                  onChange={(e) => setIsPublic(e.target.checked)}
+                  className='w-4 h-4 accent-blue-600'
+                />
+                <label className='text-sm font-medium text-gray-700 dark:text-gray-400 ml-2'>
+                  Is public
+                </label>
+              </div>
+
               <div className='flex justify-end mt-4 gap-2'>
                 <button
                   onClick={() => setIsCreating(false)}
@@ -318,19 +323,14 @@ export default function MenuSuspenso({
                 <button
                   onClick={() => {
                     if (!collectionName.trim()) return
-
-                    // ✅ cria a coleção de verdade
-                    LocalDataCollection.create(collectionName.trim())
-
-                    // fecha o modal e limpa o campo
+                    // aqui você chama seu LocalDataCollection.create(...) se quiser
+                    LocalDataCollection.create(collectionName, isPublic)
                     setIsCreating(false)
                     setCollectionName('')
-
-                    // ✅ avisa a Home para recarregar as coleções
                     window.dispatchEvent(new Event('collectionsUpdated'))
                   }}
                   className='px-4 py-2 rounded-full text-sm bg-blue-600 
-             text-white hover:opacity-90'
+                             text-white hover:opacity-90'
                 >
                   Create
                 </button>

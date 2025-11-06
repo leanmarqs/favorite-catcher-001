@@ -33,11 +33,14 @@ export default function SearchBar({ onSearch }: SearchBarProps) {
     const newFavicon: FaviconItem = {
       key: crypto.randomUUID(),
       name: title?.trim() || 'New Favorite',
-      src: 'https://cdn.simpleicons.org/appstore/007AFF', // Ícone mock padrão
-      bgClass: 'bg-white', // Fundo consistente
-      imgClass: 'object-contain', // Mantém proporção
-      url: url.trim(), // 🌐 salva a URL do site
-      description, // 🧠 salva a descrição do site
+      src: 'https://cdn.simpleicons.org/appstore/007AFF', // ícone padrão
+      bgClass: 'bg-white',
+      imgClass: 'object-contain',
+      url: url.trim(),
+      description,
+      createdAt: Date.now(),
+      clicks: 0,
+      lastTimeClicked: Date.now(),
     }
 
     // 💾 Adiciona o favicon nas coleções selecionadas
