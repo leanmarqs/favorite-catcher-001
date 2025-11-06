@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
-import Favicon from './Favicon'
-import type { FaviconItem } from './Favicon'
+import Favicon from './FaviconLayout'
+import { type FaviconItem } from '@/schemas/Favicon'
 
 const leftArrowPng = new URL(
   '../assets/favicons/left-arrow.png',
@@ -18,7 +18,11 @@ interface CollectionProps {
   items: FaviconItem[]
 }
 
-export default function Collection({ id, title, items }: CollectionProps) {
+export default function CollectionLayout({
+  id,
+  title,
+  items,
+}: CollectionProps) {
   const [index, setIndex] = useState(0)
 
   const total = items.length

@@ -1,4 +1,4 @@
-import type { FaviconItem } from '@/layouts/Favicon'
+import type { FaviconItem } from '@/layouts/FaviconLayout'
 
 /**
  * Função utilitária para gerar coleções mock.

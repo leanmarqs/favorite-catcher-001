@@ -1,10 +1,11 @@
 import { useState } from 'react'
 import { Label } from '@/components/ui/label'
 import ReactDOM from 'react-dom'
-import { LocalData } from '@/utils/LocalData'
+import { LocalDataFavicon } from '@/utils/LocalDataFavicon'
+import { LocalDataCollection } from '@/utils/LocalDataCollection'
 import mockFavicon from '@/assets/favicons/mock-favicon.svg' // ícone padrão (adicione na pasta /assets)
-import type { FaviconItem } from '@/layouts/Favicon'
-
+import { motion } from 'framer-motion'
+import { type FaviconItem } from '@/schemas/Favicon'
 interface SearchBarProps {
   onSearch: (query: string) => void
 }
@@ -15,22 +16,8 @@ export default function SearchBar({ onSearch }: SearchBarProps) {
   const [title, setTitle] = useState('')
   const [selectedCollections, setSelectedCollections] = useState<string[]>([])
   const [isSelectOpen, setIsSelectOpen] = useState(false)
-  const [collections, setCollections] = useState(LocalData.getAll())
+  const [collections, setCollections] = useState(LocalDataCollection.getAll())
   const [url, setUrl] = useState('')
-
-  // const onSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-  //   e.preventDefault()
-  //   if (!query.trim()) return
-
-  //   try {
-  //     onSearch(query)
-  //   } catch {
-  //     console.warn('⚠ onSearch not implemented in parent yet.')
-  //   }
-
-  //   setTitle(query)
-  //   setIsModalOpen(true)
-  // }
 
   const onSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -54,7 +41,7 @@ export default function SearchBar({ onSearch }: SearchBarProps) {
     }
 
     // 💾 Adiciona o favicon nas coleções selecionadas
-    LocalData.addFaviconToCollections(newFavicon, selectedCollections)
+    LocalDataFavicon.addToCollections(newFavicon, selectedCollections)
 
     // 🔁 Atualiza a tela
     window.dispatchEvent(new Event('collectionsUpdated'))
@@ -73,7 +60,7 @@ export default function SearchBar({ onSearch }: SearchBarProps) {
   }
 
   const handleOpenSelect = () => {
-    setCollections(LocalData.getAll())
+    setCollections(LocalDataCollection.getAll())
     if (!selectedCollections.length && collections.length > 0) {
       const last = [...collections].sort((a, b) => b.createdAt - a.createdAt)[0]
       setSelectedCollections([last.id])
@@ -169,10 +156,16 @@ export default function SearchBar({ onSearch }: SearchBarProps) {
         ReactDOM.createPortal(
           <div
             className='fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[9999]'
-            onClick={() => setIsModalOpen(false)}
+            // onClick={() => setIsModalOpen(false)}
           >
-            <div
-              className='bg-white dark:bg-zinc-900 text-black dark:text-zinc-100 rounded-3xl p-6 w-96 shadow-2xl relative'
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.9 }}
+              transition={{ duration: 0.25 }}
+              className='bg-white dark:bg-zinc-900 text-black dark:text-zinc-100 
+             rounded-3xl p-6 w-96 relative
+             shadow-[0_8px_30px_rgba(0,0,0,0.3)]'
               onClick={(e) => e.stopPropagation()}
             >
               <h2 className='text-lg font-semibold mb-4 text-center'>
@@ -203,16 +196,31 @@ export default function SearchBar({ onSearch }: SearchBarProps) {
               </div>
 
               {/* Editable Title */}
-              <input
-                type='text'
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                className='w-full rounded-full border border-input bg-background 
-                           px-4 py-2 text-sm shadow-sm outline-none mb-3
-                           focus-visible:ring-2 focus-visible:ring-blue-500 
-                           dark:bg-zinc-800'
-              />
+              <div className='mb-3 text-left'>
+                <label
+                  htmlFor='title'
+                  className='block text-sm font-medium text-gray-700 dark:text-gray-400 mb-1 text-left ml-2'
+                >
+                  Title
+                </label>
+                <input
+                  id='title'
+                  type='text'
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  className='w-full rounded-full border border-input bg-background 
+               px-4 py-2 text-sm shadow-sm outline-none
+               focus-visible:ring-2 focus-visible:ring-blue-500 
+               dark:bg-zinc-800'
+                />
+              </div>
               {/* Editable Url */}
+              <label
+                htmlFor='title'
+                className='block text-sm font-medium text-gray-700 dark:text-gray-400 mb-1 text-left  ml-2'
+              >
+                URL
+              </label>
               <input
                 type='text'
                 placeholder='URL do site'
@@ -225,6 +233,12 @@ export default function SearchBar({ onSearch }: SearchBarProps) {
               />
 
               {/* Collection Selector */}
+              <label
+                htmlFor='title'
+                className='block text-sm font-medium text-gray-700 dark:text-gray-400 mb-1 text-left  ml-2'
+              >
+                Collections
+              </label>
               <div
                 onClick={handleOpenSelect}
                 className='w-full rounded-full border border-gray-300 
@@ -256,7 +270,7 @@ export default function SearchBar({ onSearch }: SearchBarProps) {
                   Insert
                 </button>
               </div>
-            </div>
+            </motion.div>
           </div>,
           document.body
         )}
@@ -264,7 +278,11 @@ export default function SearchBar({ onSearch }: SearchBarProps) {
       {/* 📚 Modal: Select Collections */}
       {isSelectOpen &&
         ReactDOM.createPortal(
-          <div
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.9 }}
+            transition={{ duration: 0.15 }}
             className='fixed inset-0 bg-black/50 backdrop-blur-sm 
                        flex items-center justify-center z-[9999]'
             onClick={() => setIsSelectOpen(false)}
@@ -305,66 +323,9 @@ export default function SearchBar({ onSearch }: SearchBarProps) {
                 </button>
               </div>
             </div>
-          </div>,
+          </motion.div>,
           document.body
         )}
     </>
   )
 }
-
-// import { useState } from 'react'
-// import { Label } from '@/components/ui/label'
-
-// function IconSearch(props: React.SVGProps<SVGSVGElement>) {
-//   return (
-//     <svg
-//       viewBox='0 0 24 24'
-//       fill='none'
-//       stroke='currentColor'
-//       strokeWidth='2'
-//       strokeLinecap='round'
-//       strokeLinejoin='round'
-//       aria-hidden='true'
-//       {...props}
-//     >
-//       <circle cx='11' cy='11' r='8' />
-//       <path d='m21 21-3.6-3.6' />
-//     </svg>
-//   )
-// }
-
-// interface SearchBarProps {
-//   onSearch: (query: string) => void
-// }
-
-// export default function SearchBar({ onSearch }: SearchBarProps) {
-//   const [query, setQuery] = useState('')
-
-//   const onSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-//     e.preventDefault()
-//     onSearch(query)
-//   }
-
-//   return (
-//     <div className='mx-auto w-full max-w-2xl pt-6 caret-transparent'>
-//       <form onSubmit={onSubmit} className='relative caret-transparent'>
-//         {/* ↑ faz com que o caret seja invisível em toda a área do form */}
-
-//         <Label htmlFor='search' className='sr-only'>
-//           Buscar favoritos
-//         </Label>
-
-//         <IconSearch className='absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground pointer-events-none' />
-
-//         <input
-//           id='search'
-//           type='text'
-//           value={query}
-//           onChange={(e) => setQuery(e.target.value)}
-//           placeholder='Buscar favoritos'
-//           className='w-full rounded-full border border-input bg-background pl-10 pr-4 h-12 text-sm shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-ring caret-current dark:caret-white'
-//         />
-//       </form>
-//     </div>
-//   )
-// }

@@ -1,24 +1,81 @@
-import { LocalData } from '@/utils/LocalData'
 import { useEffect, useRef, useState } from 'react'
 import ReactDOM from 'react-dom'
+import { motion } from 'framer-motion'
+import { LocalDataCollection } from '@/utils/LocalDataCollection'
 
-// === SVG ICONS ===
-function IconSort(props: React.SVGProps<SVGSVGElement>) {
+export type SortOption = 'A-Z' | 'Amount' | 'Creation' | 'Relevant'
+export type SortDirection = 'asc' | 'desc'
+
+interface MenuSuspensoProps {
+  // (opcional) controle externo
+  sortOption?: SortOption
+  sortDirection?: SortDirection
+  onSortChange?: (option: SortOption) => void
+  onDirectionToggle?: (next: SortDirection) => void
+}
+
+// === ICONES BASE ===
+function IconAZ(props: React.SVGProps<SVGSVGElement>) {
   return (
     <svg
       viewBox='0 0 24 24'
       fill='none'
       stroke='currentColor'
       strokeWidth='2'
-      strokeLinecap='round'
-      strokeLinejoin='round'
       {...props}
     >
-      <path d='M3 4h13M3 10h9M3 16h5M17 4v16l4-4' />
+      <path d='M4 7h8M4 12h6M4 17h4' />
+      <path d='M16 6v12l4-4' />
+    </svg>
+  )
+}
+function IconAmount(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg
+      viewBox='0 0 24 24'
+      fill='none'
+      stroke='currentColor'
+      strokeWidth='2'
+      {...props}
+    >
+      <circle cx='6' cy='6' r='2' />
+      <circle cx='6' cy='12' r='2' />
+      <circle cx='6' cy='18' r='2' />
+      <path d='M12 6h6M12 12h8M12 18h4' />
+    </svg>
+  )
+}
+function IconCalendar(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg
+      viewBox='0 0 24 24'
+      fill='none'
+      stroke='currentColor'
+      strokeWidth='2'
+      {...props}
+    >
+      <rect x='3' y='4' width='18' height='18' rx='2' ry='2' />
+      <line x1='16' y1='2' x2='16' y2='6' />
+      <line x1='8' y1='2' x2='8' y2='6' />
+      <line x1='3' y1='10' x2='21' y2='10' />
+    </svg>
+  )
+}
+function IconStar(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg
+      viewBox='0 0 24 24'
+      fill='none'
+      stroke='currentColor'
+      strokeWidth='2'
+      {...props}
+    >
+      <path d='M12 3l2.9 5.9 6.5.9-4.7 4.6 1.1 6.4L12 18.8 6.2 20.8 7.3 14 2.6 9.8l6.5-.9L12 3z' />
     </svg>
   )
 }
 
+// === ICONES AUXILIARES ===
 function IconFilter(props: React.SVGProps<SVGSVGElement>) {
   return (
     <svg
@@ -26,15 +83,12 @@ function IconFilter(props: React.SVGProps<SVGSVGElement>) {
       fill='none'
       stroke='currentColor'
       strokeWidth='2'
-      strokeLinecap='round'
-      strokeLinejoin='round'
       {...props}
     >
       <polygon points='22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3' />
     </svg>
   )
 }
-
 function IconPlus(props: React.SVGProps<SVGSVGElement>) {
   return (
     <svg
@@ -42,8 +96,6 @@ function IconPlus(props: React.SVGProps<SVGSVGElement>) {
       fill='none'
       stroke='currentColor'
       strokeWidth='2'
-      strokeLinecap='round'
-      strokeLinejoin='round'
       {...props}
     >
       <line x1='12' y1='5' x2='12' y2='19' />
@@ -51,33 +103,100 @@ function IconPlus(props: React.SVGProps<SVGSVGElement>) {
     </svg>
   )
 }
+// setas pequenas para sobrepor
+function ArrowUpMini(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox='0 0 24 24' fill='currentColor' {...props}>
+      <path d='M12 6l5 6h-3v6H10v-6H7l5-6z' />
+    </svg>
+  )
+}
+function ArrowDownMini(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox='0 0 24 24' fill='currentColor' {...props}>
+      <path d='M12 18l-5-6h3V6h4v6h3l-5 6z' />
+    </svg>
+  )
+}
 
-// === COMPONENT ===
-export default function MenuSuspenso() {
+// === COMPONENTE ===
+export default function MenuSuspenso({
+  sortOption: controlledOption,
+  sortDirection: controlledDirection,
+  onSortChange,
+  onDirectionToggle,
+}: MenuSuspensoProps) {
+  // estados internos (usados se não houver controle externo)
+  const [internalOption, setInternalOption] = useState<SortOption>('A-Z')
+  const [internalDir, setInternalDir] = useState<SortDirection>('asc')
   const [isFilterOpen, setIsFilterOpen] = useState(false)
   const [isCreating, setIsCreating] = useState(false)
   const [collectionName, setCollectionName] = useState('')
   const menuRef = useRef<HTMLDivElement>(null)
 
-  const toggleFilter = () => setIsFilterOpen((v) => !v)
-  const handleSort = () => console.log('🔤 Sorting collections...')
-  const handleCreate = () => setIsCreating(true)
+  const sortOption = controlledOption ?? internalOption
+  const sortDirection = controlledDirection ?? internalDir
 
-  // 💾 Create and save a new collection locally
+  const toggleFilter = () => setIsFilterOpen((v) => !v)
+
+  // mantém essa função no componente:
   const handleCreateCollection = () => {
     if (!collectionName.trim()) return
-    const newCollection = LocalData.add(collectionName.trim())
-    console.log('✅ Created new collection:', newCollection)
+    LocalDataCollection.create(collectionName.trim()) // 👈 cria de verdade
     setIsCreating(false)
     setCollectionName('')
-    // 🔔 Notify Home to update
-    window.dispatchEvent(new Event('collectionsUpdated'))
+    window.dispatchEvent(new Event('collectionsUpdated')) // 👈 atualiza a Home
   }
 
-  // 👇 Close filter when clicking outside
+  // alterna somente direção (↑/↓)
+  const toggleDirection = () => {
+    const next: SortDirection = sortDirection === 'asc' ? 'desc' : 'asc'
+    if (onDirectionToggle) onDirectionToggle(next)
+    if (controlledDirection === undefined) setInternalDir(next)
+  }
+
+  // altera o tipo (A-Z / Amount / Creation / Relevant)
+  const changeOption = (opt: SortOption) => {
+    if (onSortChange) onSortChange(opt)
+    if (controlledOption === undefined) setInternalOption(opt)
+    setIsFilterOpen(false)
+  }
+
+  // Ícone conforme tipo + seta conforme direção
+  const getSortIcon = () => {
+    const arrow =
+      sortDirection === 'asc' ? (
+        <ArrowUpMini className='w-3.5 h-3.5 text-blue-500 dark:text-blue-400' />
+      ) : (
+        <ArrowDownMini className='w-3.5 h-3.5 text-blue-500 dark:text-blue-400' />
+      )
+
+    const base =
+      sortOption === 'A-Z' ? (
+        <IconAZ className='w-5 h-5 text-blue-500 dark:text-blue-400' />
+      ) : sortOption === 'Amount' ? (
+        <IconAmount className='w-5 h-5 text-green-500 dark:text-green-400' />
+      ) : sortOption === 'Creation' ? (
+        <IconCalendar className='w-5 h-5 text-purple-500 dark:text-purple-400' />
+      ) : (
+        <IconStar className='w-5 h-5 text-yellow-500 dark:text-yellow-400' />
+      )
+
+    // wrapper com seta sobreposta (canto inferior direito)
+    return (
+      <span className='relative inline-grid place-items-center'>
+        {base}
+        <span className='absolute -bottom-1 -right-1 rounded-full bg-white/90 dark:bg-zinc-900/90 p-[1px]'>
+          {arrow}
+        </span>
+      </span>
+    )
+  }
+
+  // fechar dropdown ao clicar fora
   useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+    function handleClickOutside(e: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
         setIsFilterOpen(false)
       }
     }
@@ -90,9 +209,9 @@ export default function MenuSuspenso() {
       className='relative flex justify-center items-center gap-4 mt-2'
       ref={menuRef}
     >
-      {/* ➕ Create Collection Button */}
+      {/* ➕ Criar coleção (placeholder) */}
       <button
-        onClick={handleCreate}
+        onClick={() => setIsCreating(true)}
         className='w-8 h-8 grid place-items-center rounded-full bg-white text-black 
                    dark:bg-zinc-800 dark:text-zinc-100 shadow 
                    hover:scale-110 transition-transform duration-150'
@@ -101,18 +220,21 @@ export default function MenuSuspenso() {
         <IconPlus className='w-5 h-5' />
       </button>
 
-      {/* 🔤 Sort Button */}
+      {/* 🔤 Sort (só alterna direção) */}
       <button
-        onClick={handleSort}
+        onClick={toggleDirection}
         className='w-8 h-8 grid place-items-center rounded-full bg-white text-black 
                    dark:bg-zinc-800 dark:text-zinc-100 shadow 
                    hover:scale-110 transition-transform duration-150'
-        aria-label='Sort collections'
+        aria-label='Toggle sort direction'
+        title={`Sort by ${sortOption} (${
+          sortDirection === 'asc' ? 'ascending' : 'descending'
+        })`}
       >
-        <IconSort className='w-5 h-5' />
+        {getSortIcon()}
       </button>
 
-      {/* ⚙️ Filter Button */}
+      {/* ⚙️ Filter (escolhe o tipo) */}
       <div className='relative'>
         <button
           onClick={toggleFilter}
@@ -120,27 +242,31 @@ export default function MenuSuspenso() {
                      dark:bg-zinc-800 dark:text-zinc-100 shadow 
                      hover:scale-110 transition-transform duration-150'
           aria-label='Filter collections'
+          title='Choose sort field'
         >
           <IconFilter className='w-5 h-5' />
         </button>
 
-        {/* 🌙 Filter Dropdown */}
         {isFilterOpen && (
           <div
             className='absolute top-12 left-1/2 -translate-x-1/2 
                        bg-white dark:bg-zinc-800 text-black dark:text-zinc-100 
                        rounded-2xl shadow-xl border border-gray-200 dark:border-zinc-700 
-                       w-52 p-2 z-10 backdrop-blur-sm'
+                       w-56 p-2 z-10 backdrop-blur-sm'
           >
             <ul className='space-y-1 text-sm'>
-              {['A-Z', 'Z-A', 'Item count', 'Creation date', 'Relevant'].map(
+              {(['A-Z', 'Amount', 'Creation', 'Relevant'] as SortOption[]).map(
                 (item) => (
                   <li
                     key={item}
-                    className='hover:bg-gray-100 dark:hover:bg-zinc-700 
-                             hover:shadow-md hover:-translate-y-0.5 
-                             transition-all px-3 py-2 rounded-full 
-                             cursor-pointer text-center'
+                    onClick={() => changeOption(item)}
+                    className={`px-3 py-2 rounded-full cursor-pointer text-center transition-all
+                              hover:bg-gray-100 dark:hover:bg-zinc-700 hover:shadow-md 
+                              hover:-translate-y-0.5 ${
+                                sortOption === item
+                                  ? 'bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-400 font-semibold'
+                                  : ''
+                              }`}
                   >
                     {item}
                   </li>
@@ -151,10 +277,14 @@ export default function MenuSuspenso() {
         )}
       </div>
 
-      {/* 🪄 Modal: Create new collection */}
+      {/* 🪄 Modal "Create new collection" (idêntico ao seu; mantive sem backend) */}
       {isCreating &&
         ReactDOM.createPortal(
-          <div
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.9 }}
+            transition={{ duration: 0.12 }}
             className='fixed inset-0 bg-black/50 backdrop-blur-sm 
                        flex items-center justify-center z-[9999]'
             onClick={() => setIsCreating(false)}
@@ -186,15 +316,27 @@ export default function MenuSuspenso() {
                   Cancel
                 </button>
                 <button
-                  onClick={handleCreateCollection}
+                  onClick={() => {
+                    if (!collectionName.trim()) return
+
+                    // ✅ cria a coleção de verdade
+                    LocalDataCollection.create(collectionName.trim())
+
+                    // fecha o modal e limpa o campo
+                    setIsCreating(false)
+                    setCollectionName('')
+
+                    // ✅ avisa a Home para recarregar as coleções
+                    window.dispatchEvent(new Event('collectionsUpdated'))
+                  }}
                   className='px-4 py-2 rounded-full text-sm bg-blue-600 
-                             text-white hover:opacity-90'
+             text-white hover:opacity-90'
                 >
                   Create
                 </button>
               </div>
             </div>
-          </div>,
+          </motion.div>,
           document.body
         )}
     </div>

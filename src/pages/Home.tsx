@@ -1,35 +1,65 @@
 import { useEffect, useState } from 'react'
-import { LocalData } from '@/utils/LocalData'
-import Collection from '@/layouts/Collection'
-import HeaderSection from '@/layouts/HeaderSection'
-import { allMockCollections } from '@/data/collectionsData'
+import HeaderSection from '../layouts/HeaderSection'
+import { LocalDataCollection } from '@/utils/LocalDataCollection'
+import CollectionLayout from '@/layouts/CollectionLayout'
+import type { Collection } from '@/schemas/Collection'
+import type { SortOption, SortDirection } from '@/layouts/MenuSuspenso'
 
-function Home() {
-  const [collections, setCollections] = useState(LocalData.getAll())
+export default function Home() {
+  const [collections, setCollections] = useState<Collection[]>([])
+  const [sortOption, setSortOption] = useState<SortOption>('A-Z')
+  const [sortDirection, setSortDirection] = useState<SortDirection>('asc')
 
+  // Carrega ordenado inicialmente
   useEffect(() => {
-    const updateCollections = () => setCollections(LocalData.getAll())
-    window.addEventListener('collectionsUpdated', updateCollections)
-    return () =>
-      window.removeEventListener('collectionsUpdated', updateCollections)
+    setCollections(LocalDataCollection.getAllSorted(sortOption, sortDirection))
   }, [])
+
+  // Recarrega quando algo mudar no storage (ex.: criar coleção)
+  useEffect(() => {
+    const onUpdate = () => {
+      setCollections(
+        LocalDataCollection.getAllSorted(sortOption, sortDirection)
+      )
+    }
+    window.addEventListener('collectionsUpdated', onUpdate)
+    return () => window.removeEventListener('collectionsUpdated', onUpdate)
+  }, [sortOption, sortDirection])
+
+  // Sempre que sortOption/direction mudar, reordena
+  useEffect(() => {
+    setCollections(LocalDataCollection.getAllSorted(sortOption, sortDirection))
+  }, [sortOption, sortDirection])
 
   return (
     <main className='min-h-screen p-4 dark:bg-zinc-900 dark:text-zinc-100'>
-      <div>
-        <HeaderSection />
-      </div>
+      <HeaderSection
+        sortOption={sortOption}
+        sortDirection={sortDirection}
+        onSortChange={(opt) => {
+          // ao trocar de campo, resetamos para asc
+          setSortOption(opt)
+          setSortDirection('asc')
+        }}
+        onDirectionToggle={(dir) => setSortDirection(dir)}
+      />
 
       <div className='w-full px-4 pt-40 space-y-6'>
-        {/*{allMockCollections.map(({ title, items }) => (
-          <Collection key={title} title={title} items={items} />
-        ))} */}
-        {collections.map((col) => (
-          <Collection id={col.id} title={col.title} items={col.items} />
-        ))}
+        {collections.length > 0 ? (
+          collections.map((c) => (
+            <CollectionLayout
+              key={c.id}
+              id={c.id}
+              title={c.title}
+              items={c.favicons || []}
+            />
+          ))
+        ) : (
+          <p className='text-center text-gray-500 dark:text-gray-400'>
+            No collections created yet.
+          </p>
+        )}
       </div>
     </main>
   )
 }
-
-export default Home
