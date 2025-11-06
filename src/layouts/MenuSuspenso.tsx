@@ -134,11 +134,21 @@ export default function MenuSuspenso({
   const [collectionName, setCollectionName] = useState('')
   const [isPublic, setIsPublic] = useState(true)
   const menuRef = useRef<HTMLDivElement>(null)
-
+  const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 })
+  const filterButtonRef = useRef<HTMLButtonElement>(null)
   const sortOption = controlledOption ?? internalOption
   const sortDirection = controlledDirection ?? internalDir
 
-  const toggleFilter = () => setIsFilterOpen((v) => !v)
+  const toggleFilter = () => {
+    if (!isFilterOpen && filterButtonRef.current) {
+      const rect = filterButtonRef.current.getBoundingClientRect()
+      setMenuPosition({
+        top: rect.bottom + 20, // 8px abaixo do botão
+        left: rect.left + rect.width / 2, // centraliza no meio
+      })
+    }
+    setIsFilterOpen((v) => !v)
+  }
 
   // alterna somente direção (↑/↓)
   const toggleDirection = () => {
@@ -178,7 +188,7 @@ export default function MenuSuspenso({
     return (
       <span className='relative inline-grid place-items-center'>
         {base}
-        <span className='absolute -bottom-1 -right-1 rounded-full bg-white/90 dark:bg-zinc-900/90 p-[1px]'>
+        <span className='absolute -bottom-1 -right-1 rounded-full bg-white/90 dark:bg-zinc-900/90 p-px'>
           {arrow}
         </span>
       </span>
@@ -229,6 +239,7 @@ export default function MenuSuspenso({
       {/* ⚙️ Filter (escolhe o tipo) */}
       <div className='relative'>
         <button
+          ref={filterButtonRef}
           onClick={toggleFilter}
           className='w-8 h-8 grid place-items-center rounded-full bg-white text-black 
                      dark:bg-zinc-800 dark:text-zinc-100 shadow 
@@ -239,34 +250,51 @@ export default function MenuSuspenso({
           <IconFilter className='w-5 h-5' />
         </button>
 
-        {isFilterOpen && (
-          <div
-            className='absolute top-12 left-1/2 -translate-x-1/2 
-                       bg-white dark:bg-zinc-800 text-black dark:text-zinc-100 
-                       rounded-2xl shadow-xl border border-gray-200 dark:border-zinc-700 
-                       w-56 p-2 z-10 backdrop-blur-sm'
-          >
-            <ul className='space-y-1 text-sm'>
-              {(['A-Z', 'Amount', 'Creation', 'Relevant'] as SortOption[]).map(
-                (item) => (
-                  <li
-                    key={item}
-                    onClick={() => changeOption(item)}
-                    className={`px-3 py-2 rounded-full cursor-pointer text-center transition-all
-                              hover:bg-gray-100 dark:hover:bg-zinc-700 hover:shadow-md 
-                              hover:-translate-y-0.5 ${
-                                sortOption === item
-                                  ? 'bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-400 font-semibold'
-                                  : ''
-                              }`}
-                  >
-                    {item}
-                  </li>
-                )
-              )}
-            </ul>
-          </div>
-        )}
+        {isFilterOpen &&
+          ReactDOM.createPortal(
+            <div
+              className='fixed inset-0 z-[9998]'
+              onMouseDown={() => setIsFilterOpen(false)} // fecha ao clicar fora
+            >
+              <div
+                onMouseDown={(e) => e.stopPropagation()} // impede que o overlay feche
+                className='absolute bg-white dark:bg-zinc-800 text-black dark:text-zinc-100 
+                   rounded-2xl shadow-xl border border-gray-200 dark:border-zinc-700 
+                   w-56 p-2 z-[9999] backdrop-blur-sm'
+                style={{
+                  top: `${menuPosition.top}px`,
+                  left: `${menuPosition.left}px`,
+                  transform: 'translateX(-50%)',
+                }}
+              >
+                <ul className='space-y-1 text-sm'>
+                  {(
+                    ['A-Z', 'Amount', 'Creation', 'Relevant'] as SortOption[]
+                  ).map((item) => (
+                    <li
+                      key={item}
+                      onMouseDown={(e) => {
+                        e.stopPropagation()
+                        e.preventDefault() // evita blur do botão e perda do foco
+                        changeOption(item) // muda a opção
+                        setIsFilterOpen(false) // fecha o menu
+                      }}
+                      className={`px-3 py-2 rounded-full cursor-pointer text-center transition-all
+                            hover:bg-gray-100 dark:hover:bg-zinc-700 hover:shadow-md 
+                            hover:-translate-y-0.5 ${
+                              sortOption === item
+                                ? 'bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-400 font-semibold'
+                                : ''
+                            }`}
+                    >
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>,
+            document.body
+          )}
       </div>
 
       {/* 🪄 Modal "Create new collection" (idêntico ao seu; mantive sem backend) */}
@@ -278,7 +306,7 @@ export default function MenuSuspenso({
             exit={{ opacity: 0, scale: 0.9 }}
             transition={{ duration: 0.12 }}
             className='fixed inset-0 bg-black/50 backdrop-blur-sm 
-                       flex items-center justify-center z-[9999]'
+                       flex items-center justify-center z-9999'
             onClick={() => setIsCreating(false)}
           >
             <div
@@ -323,7 +351,6 @@ export default function MenuSuspenso({
                 <button
                   onClick={() => {
                     if (!collectionName.trim()) return
-                    // aqui você chama seu LocalDataCollection.create(...) se quiser
                     LocalDataCollection.create(collectionName, isPublic)
                     setIsCreating(false)
                     setCollectionName('')
