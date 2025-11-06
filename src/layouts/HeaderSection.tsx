@@ -1,8 +1,9 @@
 import SearchBar from './SearchBar'
-import MenuSuspenso, {
+import {
+  MenuSuspenso,
   type SortOption,
   type SortDirection,
-} from './MenuSuspenso'
+} from '../components/MenuSuspenso'
 
 interface HeaderSectionProps {
   sortOption: SortOption
